@@ -9,13 +9,17 @@ router.post('/register', async (req, res) => {
   try {
     const { firstName, lastName, email, location, password } = req.body;
 
-
+    // Check if user already exists
     const existingUser = await User.findOne({ email });
     if (existingUser) {
       return res.status(400).json({ success: false, message: 'User already exists' });
     }
+
+    // Hash password
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
+
+    // Create new user
     const newUser = new User({
       firstName,
       lastName,
@@ -24,10 +28,13 @@ router.post('/register', async (req, res) => {
       password: hashedPassword
     });
 
+    // Save user to database
     const savedUser = await newUser.save();
 
+    // Generate JWT token
     const token = generateToken(savedUser);
 
+    // Return user data and token
     res.status(201).json({
       success: true,
       token,
@@ -50,18 +57,22 @@ router.post('/login', async (req, res) => {
   try {
     const { email, password } = req.body;
 
+ 
     const user = await User.findOne({ email }).select('+password');
     if (!user) {
       return res.status(401).json({ success: false, message: 'Invalid credentials' });
     }
+
 
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
       return res.status(401).json({ success: false, message: 'Invalid credentials' });
     }
 
+    // Generate JWT token
     const token = generateToken(user);
 
+    // Return user data and token
     res.status(200).json({
       success: true,
       token,
